@@ -25,8 +25,8 @@ def welcome():
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/start<br/>"
-        f"/api/v1.0/start/end"
+        f"/api/v1.0/<start><br/>"
+        f"/api/v1.0/<start>/<end>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -67,23 +67,28 @@ def tobs():
     all_tobs = list(np.ravel(results))
     return jsonify(all_tobs)
 
-
 @app.route("/api/v1.0/<start>")
 def start_date(start):
 
-    query2 = session.query(Measurement.tobs).\
-    filter(Measurement.date >= start).all
+    session = Session(engine)
+    results = session.query(func.max(Measurement.tobs), func.min(Measurement.tobs), func.avg(Measurement.tobs)).\
+    filter(Measurement.date >= start).all()
+    session.close()
 
+    start_tobs = list(np.ravel(results))
+    return jsonify(start_tobs)
 
-    canonicalized = real_name.replace(" ", "").lower()
-    for character in justice_league_members:
-        search_term = character["real_name"].replace(" ", "").lower()
+@app.route("/api/v1.0/<start>/<end>")
+def start_end_date(start, end):
 
-        if search_term == canonicalized:
-            return jsonify(character)
+    session = Session(engine)
+    results = session.query(func.max(Measurement.tobs), func.min(Measurement.tobs), func.avg(Measurement.tobs)).\
+    filter(Measurement.date >= start).\
+    filter(Measurement.date <= end).all()
+    session.close()
 
-    return jsonify({"error": f"Character with real_name {real_name} not found."}), 404
-
+    start_end_tobs = list(np.ravel(results))
+    return jsonify(start_end_tobs)
 
 if __name__ == '__main__':
     app.run(debug=True)
